@@ -1,0 +1,6 @@
+[PROJECTS]
+Count=2
+Project0=..\Temperatura\temperatura.mcppi
+Project1=vsf.mcppi
+[ActiveProject]
+Index=1

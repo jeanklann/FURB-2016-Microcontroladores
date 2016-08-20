@@ -1,0 +1,16 @@
+main
+	__CC2DW
+	ADC_Read
+		Delay_22us
+	Word2Double
+		NRM3232
+			RES032
+			SETFUN32
+			FIXSIGN32
+	Mul_32x32_FP
+		RES032
+		SETFOV32
+		SETFUN32
+	Compare_Double
+	Double2Int
+		SETIOV3224
