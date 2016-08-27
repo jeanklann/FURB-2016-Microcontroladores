@@ -1,0 +1,24 @@
+main
+	__CC2DW
+	UART1_Init
+	ADC_Read
+		Delay_22us
+	Word2Double
+		NRM3232
+			RES032
+			SETFUN32
+			FIXSIGN32
+	Mul_32x32_FP
+		RES032
+		SETFOV32
+		SETFUN32
+	UART1_Data_Ready
+	UART1_Read
+	Double2Int
+		SETIOV3224
+	IntToStr
+		WordToStr
+			Div_16x16_U
+	UART1_Write
+	UART1_Write_Text
+		UART1_Write
