@@ -1,0 +1,257 @@
+int displayAtual = 0;
+char ValorDisplay[] = {0,0,0,0};
+char valor_teclado = 255;
+unsigned char txt[6]; //utilizada para conversao de binario para txt para ser impresso
+short mes_atual;
+short dia_atual;
+short hora_atual;
+short minuto_atual;
+short segundo_atual;
+char modo = 0; //0 = mostrando a hora; 1 = digitando valor 1; 2 = digitando valor 2; 3 = digitando valor 3; 4 = digitando valor 4;
+char endereco_atual = 0;
+char entrada_saida = 0;
+
+const char valoresDisplay7[] = {
+	0B00111111, //0
+	0B00000110, //1
+	0B01011011, //2
+	0B01001111, //3
+	0B01100110, //4
+	0B01101101, //5
+	0B01111101, //6
+	0B00000111, //7
+	0B01111111, //8
+	0B01101111  //9
+};
+
+void initTimer0(){
+	T0CON = 0xC4; //contador de 8 bits. toda vez que ele estourar gera a interrupcao.
+	TMR0L = 0x06; //calculo maroto feito pelo Miguel
+	TMR0IE_BIT = 1;
+	GIE_BIT = 1;
+}
+
+void Interrupt(){ //a cada 4ms ele chama essa funcao
+	TMR0IF_BIT = 0;
+	TMR0L = 0x06;
+	
+	PORTD = 0B00000000;
+	PORTE = 0B00000000;
+	PORTA.F5 = 0;
+	
+	switch(displayAtual){
+		case 0:
+			PORTD = valoresDisplay7[ValorDisplay[0]];
+			PORTA.F5 = 1;
+		break;
+		case 1:
+			PORTD = valoresDisplay7[ValorDisplay[1]];
+			PORTE = 0B00000100;
+		break;
+		case 2:
+			PORTD = valoresDisplay7[ValorDisplay[2]];
+			PORTE = 0B00000010;
+		break;
+		case 3:
+			PORTD = valoresDisplay7[ValorDisplay[3]];
+			PORTE = 0B00000001;
+		break;
+	}
+	if(++displayAtual > 3){
+		displayAtual=0;
+	}
+	
+}
+
+unsigned short le_teclado(){
+	PORTB = 0x70;
+	if(!PORTB.F0) { while(!PORTB.F0); Delay_ms(20); return(10); }
+	if(!PORTB.F1) { while(!PORTB.F1); Delay_ms(20); return(11); }
+	if(!PORTB.F2) { while(!PORTB.F2); Delay_ms(20); return(255); }
+	if(!PORTB.F3) { while(!PORTB.F3); Delay_ms(20); return(255); }
+	PORTB = 0xB0;
+	if(!PORTB.F0) { while(!PORTB.F0); Delay_ms(20); return(3); }
+	if(!PORTB.F1) { while(!PORTB.F1); Delay_ms(20); return(6); }
+	if(!PORTB.F2) { while(!PORTB.F2); Delay_ms(20); return(9); }
+	if(!PORTB.F3) { while(!PORTB.F3); Delay_ms(20); return(255); }
+	PORTB = 0xD0;
+	if(!PORTB.F0) { while(!PORTB.F0); Delay_ms(20); return(2); }
+	if(!PORTB.F1) { while(!PORTB.F1); Delay_ms(20); return(5); }
+	if(!PORTB.F2) { while(!PORTB.F2); Delay_ms(20); return(8); }
+	if(!PORTB.F3) { while(!PORTB.F3); Delay_ms(20); return(0); }
+	PORTB = 0xE0;
+	if(!PORTB.F0) { while(!PORTB.F0); Delay_ms(20); return(1); }
+	if(!PORTB.F1) { while(!PORTB.F1); Delay_ms(20); return(4); }
+	if(!PORTB.F2) { while(!PORTB.F2); Delay_ms(20); return(7); }
+	if(!PORTB.F3) { while(!PORTB.F3); Delay_ms(20); return(255); }
+	return(255);
+}
+
+void Escreve_MemoriaEEPROM(unsigned int endereco, unsigned char dado){
+	I2C1_Start(); // issue I2C start signal
+	I2C1_Wr(0xA0); // send byte via I2C (device address + W)
+	I2C1_Wr(endereco); // send byte (address of EEPROM location)
+	I2C1_Wr(dado); // send data (data to be written)
+	I2C1_Stop();
+	delay_ms(16);
+}
+unsigned char Le_MemoriaEEPROM(unsigned int endereco){
+	unsigned char dado_lido;
+	I2C1_Start(); // issue I2C start signal
+	I2C1_Wr(0xA0); // send byte via I2C (device address + W)
+	I2C1_Wr(endereco); // send byte (address of EEPROM location)
+	//I2C1_Repeated_Start(); // issue I2C signal repeated start
+	//I2C1_Wr(0xD1); // send byte (device address + R)
+	dado_lido = I2C1_Rd(0u); // Read the data (NO acknowledge)
+	I2C1_Stop();
+	return(dado_lido);
+}
+void Escreve_Memoria(unsigned int endereco, unsigned char dado){
+	I2C1_Start(); // issue I2C start signal
+	I2C1_Wr(0xD0); // send byte via I2C (device address + W)
+	I2C1_Wr(endereco); // send byte (address of EEPROM location)
+	I2C1_Wr(dado); // send data (data to be written)
+	I2C1_Stop();
+	delay_ms(16);
+}
+unsigned char Le_Memoria(unsigned int endereco){
+	unsigned char dado_lido;
+	I2C1_Start(); // issue I2C start signal
+	I2C1_Wr(0xD0); // send byte via I2C (device address + W)
+	I2C1_Wr(endereco); // send byte (address of EEPROM location)
+	I2C1_Repeated_Start(); // issue I2C signal repeated start
+	I2C1_Wr(0xD1); // send byte (device address + R)
+	dado_lido = I2C1_Rd(0u); // Read the data (NO acknowledge)
+	I2C1_Stop();
+	return(dado_lido);
+}
+
+short transform_tempo_read(short in){
+	return ((in & 0xF0) / 16) * 10 + (in &	0x0F);
+}
+short transform_tempo_write(short in){
+	return (in / 10) * 16 + (in % 10);
+}
+
+
+
+void le_hora(short *mes, short *dia, short *hora, short *minuto, short *segundo){
+	*segundo = Le_Memoria(0);
+	*minuto = Le_Memoria(1);
+	*hora = Le_Memoria(2);
+	*dia = Le_Memoria(3);
+	*mes = Le_Memoria(4);
+}
+
+
+void acerta_hora(short hora, short minuto, short segundo){
+	short hora_bcd;
+	short minuto_bcd;
+	short segundo_bcd;
+	hora_bcd = (hora / 10) * 16 + (hora % 10);
+	minuto_bcd = (minuto / 10) * 16 + (minuto % 10);
+	segundo_bcd = (segundo / 10) * 16 + (segundo % 10);
+	Escreve_Memoria(0,segundo_bcd); //11 segundos
+	Escreve_Memoria(1,minuto_bcd); //11 minutos
+	Escreve_Memoria(2,hora_bcd); //11 horas
+}
+
+int main(){
+	TRISE.F0 = 0;
+	TRISE.F1 = 0;
+	TRISE.F2 = 0;
+	TRISE.F3 = 0;
+	TRISA.F5 = 0;
+	TRISD = 0;
+	//configurar entrada e saida
+	TRISB = 0B00001111;
+	//habilitar pullup
+	INTCON2.RBPU = 0;
+	//setar pra tipo digital
+	ADCON1 = 0x0F;
+	I2C1_Init(100000); // initialize I2C communication
+	Delay_ms(100); // Wait for UART module to stabilize
+	
+	initTimer0();
+	UART1_Init(19200);
+	
+	Escreve_MemoriaEEPROM(127, 0);
+	while(1){
+		if(modo == 0){
+			le_hora(&mes_atual, &dia_atual, &hora_atual, &minuto_atual, &segundo_atual);
+			ValorDisplay[0] = minuto_atual & 0B00001111;
+			ValorDisplay[1] = (minuto_atual & 0B11110000) >> 4;
+			ValorDisplay[2] = hora_atual & 0B00001111;
+			ValorDisplay[3] = (hora_atual & 0B11110000) >> 4;
+		} else if(modo == 1 && valor_teclado != 255){
+			ValorDisplay[3] = 0;
+			ValorDisplay[2] = 0;
+			ValorDisplay[1] = 0;
+			ValorDisplay[0] = valor_teclado;
+		} else if(modo == 2 && valor_teclado != 255){
+			ValorDisplay[3] = 0;
+			ValorDisplay[2] = 0;
+			ValorDisplay[1] = ValorDisplay[0];
+			ValorDisplay[0] = valor_teclado;
+		} else if(modo == 3 && valor_teclado != 255){
+			ValorDisplay[3] = 0;
+			ValorDisplay[2] = ValorDisplay[1];
+			ValorDisplay[1] = ValorDisplay[0];
+			ValorDisplay[0] = valor_teclado;
+		} else if(modo == 4 && valor_teclado != 255){
+			ValorDisplay[3] = ValorDisplay[2];
+			ValorDisplay[2] = ValorDisplay[1];
+			ValorDisplay[1] = ValorDisplay[0];
+			ValorDisplay[0] = valor_teclado;
+			modo++;
+		} else if(modo == 5 && valor_teclado != 255){
+			if(valor_teclado == 10){
+				entrada_saida = 0;
+			} else if(valor_teclado == 11){
+				entrada_saida = 1;
+			} else {
+				UART1_write('e');
+				UART1_write('r');
+				UART1_write('r');
+				UART1_write('o');
+				ValorDisplay[3] = 0;
+				ValorDisplay[2] = 0;
+				ValorDisplay[1] = 0;
+				ValorDisplay[0] = 0;
+				delay_ms(1000);
+				modo = 0;
+			}
+		} else if(modo >= 6){
+			
+			le_hora(&mes_atual, &dia_atual, &hora_atual, &minuto_atual, &segundo_atual);
+			endereco_atual = Le_MemoriaEEPROM(127);
+			/*
+			Escreve_MemoriaEEPROM(endereco_atual, ValorDisplay[0] | (ValorDisplay[1] << 4));
+			Escreve_MemoriaEEPROM(endereco_atual+1, ValorDisplay[2] | (ValorDisplay[3] << 4));
+			Escreve_MemoriaEEPROM(endereco_atual+2, entrada_saida);
+			Escreve_MemoriaEEPROM(endereco_atual+3, hora_atual);
+			Escreve_MemoriaEEPROM(endereco_atual+4, minuto_atual);
+			Escreve_MemoriaEEPROM(endereco_atual+5, dia_atual);
+			Escreve_MemoriaEEPROM(endereco_atual+6, mes_atual);
+			*/
+			
+			endereco_atual+=7;
+			//Escreve_MemoriaEEPROM(127, endereco_atual);
+			
+			UART1_write('o');
+			UART1_write('k');
+			delay_ms(1000);
+			modo = 0;
+		}
+		
+		
+		
+		
+		if(modo < 6){
+			valor_teclado = le_teclado();
+			if(valor_teclado != 255){
+				modo++;
+			}
+		}
+	}
+}
