@@ -3,6 +3,7 @@ package br.furb.snake.game;
 import java.util.ArrayList;
 import java.util.Random;
 
+
 public class Game {
 	public static final byte Width = 8;
 	public static final byte Height = 8;
@@ -13,12 +14,12 @@ public class Game {
 	private Random random;
 	
 	private SnakeGameObject head;
-	private ArrayList<FoodGameObject> foods = new ArrayList<>();
-	private GameState state;
+	private ArrayList<FoodGameObject> foods = new ArrayList<FoodGameObject>();
+	private ArrayList<GameObject> interfaceGrafica = new ArrayList<GameObject>();
+	private int state;
 	private float time;
 	private float timeToSpawnFood;
 	private int snakeSize = 3;
-	
 
 	public float getScore() {
 		return score;
@@ -48,27 +49,34 @@ public class Game {
 		return desiredDelay;
 	}
 	public GameObject[][] getMatrix(){
-		GameObject matrix[][];
-		matrix = new GameObject[Width][];
+		GameObject matrix[][] = new GameObject[Width][];
 		for (int i = 0; i < matrix.length; i++) {
 			matrix[i] = new GameObject[Height];
 		}
-		
-		SnakeGameObject next = head;
-		while(next != null){
-			matrix[next.position.X][next.position.Y] = next;
-			next = next.root;
-		}
-		for (int i = 0; i < foods.size(); i++) {
-			matrix[foods.get(i).position.X][foods.get(i).position.Y] = foods.get(i);
+		if(state == GameState.Run){
+			SnakeGameObject next = head;
+			while(next != null){
+				matrix[next.position.X][next.position.Y] = next;
+				next = next.root;
+			}
+			for (int i = 0; i < foods.size(); i++) {
+				FoodGameObject food = (FoodGameObject) foods.get(i);
+				matrix[food.position.X][food.position.Y] = food;
+			}
+		} else {
+			for (int i = 0; i < interfaceGrafica.size(); i++) {
+				GameObject inter = (GameObject) interfaceGrafica.get(i);
+				matrix[inter.position.X][inter.position.Y] = inter;
+			}
 		}
 		
 		return matrix;
 	}
 	
 	public Game(float desiredFPS){
-		desiredDelay = 1f/desiredFPS;
-		random = new Random();
+		desiredDelay = 1f / desiredFPS;
+		//random = new Random();
+		random = new Random(3); //seed
 		state = GameState.Start;
 		
 		time = 0f;
@@ -82,9 +90,9 @@ public class Game {
 		corpse.Direction = Direction.Down;
 		head.Direction = Direction.Down;
 		
-		tail.position = new Position(Width/2, Height/2-1);
-		corpse.position = new Position(Width/2, Height/2);
-		head.position = new Position(Width/2, Height/2+1);
+		tail.position = new Position(Width / 2, Height / 2 - 1);
+		corpse.position = new Position(Width / 2, Height / 2);
+		head.position = new Position(Width / 2, Height / 2 + 1);
 		
 		head.root = corpse;
 		corpse.root = tail;
@@ -100,37 +108,59 @@ public class Game {
 		PassFoodTime();
 		
 		switch (state) {
-		case Start:
-			// TODO estado antes de iniciar o jogo
-			break;
-		case Run:
-			if(timeToSpawnFood <= 0){
-				timeToSpawnFood = FoodGameObject.TimeToSpawn;
-				SpawnFood();
-			}
-			MoveSnake();
-			Verify();
-			// TODO tem que ver se falta mais alguma coisa aqui
-			break;
-		case Win:
-			// TODO estado de jogo ganho			
-			break;
-		case Lose:
-			// TODO estado de jogo perdido	
-			break;
+			case GameState.Start:
+				// TODO estado antes de iniciar o jogo
+				break;
+			case GameState.Run:
+				if(timeToSpawnFood <= 0){
+					timeToSpawnFood = FoodGameObject.TimeToSpawn;
+					SpawnFood();
+				}
+				MoveSnake();
+				Verify();
+				// TODO tem que ver se falta mais alguma coisa aqui
+				break;
+			case GameState.Win:
+				if(interfaceGrafica.size() < Width*Height){
+					GameObject obj = new GameObject();
+					obj.position = new Position(interfaceGrafica.size()%Width, interfaceGrafica.size()/Width);
+					interfaceGrafica.add(obj);
+				}
+				break;
+			case GameState.Lose:
+				if(interfaceGrafica.size() < Width*Height){
+					GameObject obj = new GameObject();
+					obj.position = new Position(interfaceGrafica.size()%Width, interfaceGrafica.size()/Width);
+					interfaceGrafica.add(obj);
+				}
+				break;
 		}
 
 	}
 	
 	private void Verify(){
 		for (int i = 0; i < foods.size(); i++) {
-			if(foods.get(i).position.IsEqual(head.position)){
+			FoodGameObject food = (FoodGameObject) foods.get(i);
+			if(food.position.IsEqual(head.position)){
 				score++;
 				foods.remove(i);
+				SnakeGameObject next = head.root;
+				while(next != null){
+					if(next.root == null){
+						SnakeGameObject cauda = new SnakeGameObject();
+						cauda.position = new Position(next.position.X, next.position.Y);
+						cauda.comidoAgora = true;
+						cauda.Direction = next.Direction;
+						next.root = cauda;
+						snakeSize++;
+						break;
+					}
+					next = next.root;
+				}
 				break;
 			}
 		}
-		if(snakeSize >= Width*Height){
+		if(snakeSize >= Width * Height){
 			state = GameState.Win;
 			return;
 		}
@@ -151,10 +181,11 @@ public class Game {
 		do{
 			valid = true;
 			pos = new Position(
-					random.nextInt(Width), 
-					random.nextInt(Height));
+				random.nextInt(Width), 
+				random.nextInt(Height));
 			for (int i = 0; i < foods.size(); i++) {
-				if(foods.get(i).position.IsEqual(pos)){
+				FoodGameObject food = (FoodGameObject) foods.get(i);
+				if(food.position.IsEqual(pos)){
 					valid = false;
 					break;
 				}
@@ -177,8 +208,9 @@ public class Game {
 	private void PassFoodTime(){
 		int max = foods.size();
 		for (int i = 0; i < max; i++) {
-			foods.get(i).TimePassed += desiredDelay;
-			if(foods.get(i).TimePassed >= FoodGameObject.TimeToDisapear){
+			FoodGameObject food = (FoodGameObject) foods.get(i);
+			food.TimePassed += desiredDelay;
+			if(food.TimePassed >= FoodGameObject.TimeToDisapear){
 				foods.remove(i);
 				max--;
 				i--;
@@ -187,42 +219,48 @@ public class Game {
 	}
 	private void MoveSnake(){
 		SnakeGameObject next = head;
-		Direction lastDirection = head.Direction;
+		int lastDirection = head.Direction;
+		if(head == null){
+			System.out.println("gsjiodgd");
+		}
 		while(next != null){
-			switch (next.Direction) {
-			case Down:
-				next.position.Y++;
-				break;
-			case Up:
-				next.position.Y--;
-				break;
-			case Left:
-				next.position.X--;
-				break;
-			case Right:
-				next.position.X++;
-				break;
+			if(!next.comidoAgora){
+				switch (next.Direction) {
+					case Direction.Down:
+						next.position.Y++;
+						break;
+					case Direction.Up:
+						next.position.Y--;
+						break;
+					case Direction.Left:
+						next.position.X--;
+						break;
+					case Direction.Right:
+						next.position.X++;
+						break;
+				}
+				// TODO fazer as tratativas para quando ele chegar no fim do mapa
+				if(next.position.X >= Width)
+					next.position.X = 0;
+				else if(next.position.X < 0)
+					next.position.X = Width - 1;
+				
+				if(next.position.Y >= Height)
+					next.position.Y = 0;
+				else if(next.position.Y < 0)
+					next.position.Y = Height - 1;
+			
+			
+			
+				int temp_dir = next.Direction;
+				next.Direction = lastDirection;
+				lastDirection = temp_dir;
 			}
-			// TODO fazer as tratativas para quando ele chegar no fim do mapa
-			if(next.position.X >= Width)
-				next.position.X = 0;
-			else if(next.position.X < 0)
-				next.position.X = Width-1;
-			
-			if(next.position.Y >= Height)
-				next.position.Y = 0;
-			else if(next.position.Y < 0)
-				next.position.Y = Height-1;
-			
-			
-			
-			Direction temp_dir = next.Direction;
-			next.Direction = lastDirection;
-			lastDirection = temp_dir;
+			next.comidoAgora = false;
 			next = next.root;
 		}
 	}
-	public void GoDirection(Direction direction){
+	public void GoDirection(int direction){
 		head.Direction = direction;
 	}
 	

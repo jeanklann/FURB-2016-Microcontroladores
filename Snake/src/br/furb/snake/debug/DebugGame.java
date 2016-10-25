@@ -1,5 +1,7 @@
 package br.furb.snake.debug;
 
+import java.util.Scanner;
+
 import br.furb.snake.game.Direction;
 import br.furb.snake.game.FoodGameObject;
 import br.furb.snake.game.Game;
@@ -7,43 +9,12 @@ import br.furb.snake.game.GameObject;
 import br.furb.snake.game.SnakeGameObject;
 
 public class DebugGame {
-
+	static Game game = new Game(1);
 	public static void main(String[] args) {
-		// TODO fazer com debug no terminal
-		Game game = new Game(30);
 		game.StartGame();
-		print(game);
-		game.Update();
-		print(game);
-		game.GoDirection(Direction.Left);
-		game.Update();
-		print(game);
-		game.Update();
-		print(game);
-		game.GoDirection(Direction.Up);
-		game.Update();
-		print(game);
-		game.GoDirection(Direction.Right);
-		game.Update();
-		print(game);
-		game.Update();
-		print(game);
-		game.Update();
-		print(game);
-		game.Update();
-		print(game);
-		game.Update();
-		print(game);
-		game.Update();
-		print(game);
-		game.Update();
-		print(game);
-		game.Update();
-		print(game);
-		game.Update();
-		print(game);
-		game.Update();
-		print(game);
+		while(true){
+			loop();
+		}
 		
 	}
 	public static void print(Game game){
@@ -57,12 +28,29 @@ public class DebugGame {
 						System.out.print('@');
 					} else if(matriz[x][y].getClass() == FoodGameObject.class){
 						System.out.print('#');
+					} else {
+						System.out.print('&');
 					}
 				}
 			}
 			System.out.println();
 		}
 		System.out.println();
+	}
+	public static void loop(){
+		Scanner scanner = new Scanner(System.in);
+		String input = scanner.nextLine();
+		if(input.equals("w")){
+			game.GoDirection(Direction.Up);
+		} else if(input.equals("s")){
+			game.GoDirection(Direction.Down);
+		} else if(input.equals("a")){
+			game.GoDirection(Direction.Left);
+		} else if(input.equals("d")){
+			game.GoDirection(Direction.Right);
+		}
+		game.Update();
+		print(game);
 	}
 
 }
