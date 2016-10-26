@@ -10,7 +10,10 @@ short segundo_atual;
 char modo = 0; //0 = mostrando a hora; 1 = digitando valor 1; 2 = digitando valor 2; 3 = digitando valor 3; 4 = digitando valor 4;
 char endereco_atual = 0;
 char entrada_saida = 0;
+int intTemp = 0;
 int i = 0;
+int j = 0;
+char buffer[4];
 
 const char valoresDisplay7[] = {
 	0B00111111, //0
@@ -39,11 +42,11 @@ void initTimer0(){
 void Interrupt(){ //a cada 4ms ele chama essa funcao
 	TMR0IF_BIT = 0;
 	TMR0L = 0x06;
-	
+
 	PORTD = 0B00000000;
 	PORTE = 0B00000000;
 	PORTA.F5 = 0;
-	
+
 	switch(displayAtual){
 		case 0:
 			PORTD = valoresDisplay7[ValorDisplay[0]];
@@ -65,7 +68,7 @@ void Interrupt(){ //a cada 4ms ele chama essa funcao
 	if(++displayAtual > 3){
 		displayAtual=0;
 	}
-	
+
 }
 
 unsigned short le_teclado(){
@@ -168,6 +171,68 @@ void imprimeTodaAMemoria(){
 	}
 }
 
+void WriteText(char* mensagem){
+	for(j = 0; mensagem[j] != '\0'; j++){
+		UART1_write(mensagem[j]);
+	}
+}
+void WriteInt(int input){
+	buffer[0] = 0;
+	buffer[1] = 0;
+	buffer[2] = 0;
+	buffer[3] = 0;
+	IntToStr(input, &buffer);
+	WriteText(buffer);
+}
+
+void imprimeRelatorio(){
+	for(i = 0; i < endereco_atual-7 ; i += 7){
+		WriteText("\r\n");
+		WriteText("Codigo: ");
+
+		WriteInt(Le_MemoriaEEPROM(i));
+		WriteInt(Le_MemoriaEEPROM(i+1));
+		WriteText("\r\n");
+
+		WriteText("Tipo: ");
+		WriteText(Le_MemoriaEEPROM(i+2)==0?"Entrada":"Saida");
+		WriteText("\r\n");
+
+		WriteText("Hora: ");
+		WriteInt(transform_tempo_read(Le_MemoriaEEPROM(i+3)));
+		WriteText("\r\n");
+
+		WriteText("Minuto: ");
+		WriteInt(transform_tempo_read(Le_MemoriaEEPROM(i+4)));
+		WriteText("\r\n");
+
+		WriteText("Dia: ");
+		WriteInt(transform_tempo_read(Le_MemoriaEEPROM(i+5)));
+		WriteText("\r\n");
+
+		WriteText("Mes: ");
+		WriteInt(transform_tempo_read(Le_MemoriaEEPROM(i+6)));
+		WriteText("\r\n");
+
+
+
+	}
+	WriteText("\r\n");
+	WriteText("Total de registros: ");
+	WriteInt((endereco_atual)/7);
+	WriteText("\r\n");
+}
+/*
+Escreve_MemoriaEEPROM(endereco_atual, ValorDisplay[0] | (ValorDisplay[1] << 4));
+			Escreve_MemoriaEEPROM(endereco_atual+1, ValorDisplay[2] | (ValorDisplay[3] << 4));
+			Escreve_MemoriaEEPROM(endereco_atual+2, entrada_saida);
+			Escreve_MemoriaEEPROM(endereco_atual+3, hora_atual);
+			Escreve_MemoriaEEPROM(endereco_atual+4, minuto_atual);
+			Escreve_MemoriaEEPROM(endereco_atual+5, dia_atual);
+			Escreve_MemoriaEEPROM(endereco_atual+6, mes_atual);
+*/
+
+
 void playSomErro(){
 	ValorDisplay[3] = 0;
 	ValorDisplay[2] = 0;
@@ -213,6 +278,27 @@ void playSomSucesso(){
 	Sound_Play(2000, 100);
 	delay_ms(500);
 }
+void playSomSucessoHora(){
+	Sound_Play(650, 100);
+	delay_ms(100);
+	Sound_Play(660, 100);
+	delay_ms(100);
+	Sound_Play(670, 100);
+	delay_ms(100);
+	Sound_Play(700, 200);
+	delay_ms(100);
+	Sound_Play(660, 100);
+	delay_ms(100);
+	Sound_Play(700, 300);
+	delay_ms(100);
+}
+int horaCerta(){
+	if(ValorDisplay[3] > 2) return 0;
+	else if(ValorDisplay[3] == 2 && ValorDisplay[2] >= 4) return 0;
+	else if(ValorDisplay[1] > 5) return 0;
+
+	return 1;
+}
 int main(){
 	TRISE.F0 = 0;
 	TRISE.F1 = 0;
@@ -229,10 +315,10 @@ int main(){
 	I2C1_Init(100000); // initialize I2C communication
 	Sound_Init(&PORTC, 2);
 	Delay_ms(100); // Wait for UART module to stabilize
-	
+
 	initTimer0();
 	UART1_Init(19200);
-	
+
 	endereco_atual = Le_MemoriaEEPROM(127);
 	while(1){
 		if(modo == 0){
@@ -279,8 +365,12 @@ int main(){
 				modo++;
 			} else if(valor_teclado == 12){
 				entrada_saida = 1;
-				acerta_hora(ValorDisplay[2] | (ValorDisplay[3] << 4), ValorDisplay[0] | (ValorDisplay[1] << 4), 0);
-				delay_ms(1000);
+				if(horaCerta() == 1){
+					acerta_hora(ValorDisplay[2] | (ValorDisplay[3] << 4), ValorDisplay[0] | (ValorDisplay[1] << 4), 0);
+					playSomSucessoHora();
+				} else {
+					playSomErro();
+				}
 				modo = 0;
 			} else {
 				UART1_write('E');
@@ -295,7 +385,7 @@ int main(){
 			UART1_write('7');
 			le_hora(&mes_atual, &dia_atual, &hora_atual, &minuto_atual, &segundo_atual);
 			endereco_atual = Le_MemoriaEEPROM(127);
-			
+
 			Escreve_MemoriaEEPROM(endereco_atual, ValorDisplay[0] | (ValorDisplay[1] << 4));
 			Escreve_MemoriaEEPROM(endereco_atual+1, ValorDisplay[2] | (ValorDisplay[3] << 4));
 			Escreve_MemoriaEEPROM(endereco_atual+2, entrada_saida);
@@ -303,18 +393,18 @@ int main(){
 			Escreve_MemoriaEEPROM(endereco_atual+4, minuto_atual);
 			Escreve_MemoriaEEPROM(endereco_atual+5, dia_atual);
 			Escreve_MemoriaEEPROM(endereco_atual+6, mes_atual);
-			
-			
+
+
 			endereco_atual+=7;
 			Escreve_MemoriaEEPROM(127, endereco_atual);
-			
+
 			UART1_write('o');
 			UART1_write('k');
 			playSomSucesso();
 			modo = 0;
-			imprimeTodaAMemoria();
+			imprimeRelatorio();
 		}
-		
+
 		if(modo < 6){
 			valor_teclado = le_teclado();
 			if(valor_teclado != 255){
