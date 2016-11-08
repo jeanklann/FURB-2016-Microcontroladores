@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Bootstrap Example</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+
+<div class="container">
+	<h1>
+		<center>
+			SISTEMA DE CONTROLE DE TEMPERATURA RESIDENCIAL
+		</center>
+	</h1>
+  <div class="jumbotron">
+	<h2>
+		<center>
+			Temperatura da sala 1
+		</center>
+	</h2>
+	<h3>
+		<center>
+			<span class="temp1">45</span>ºC
+		</center>
+	</h3>
+	<div class="progress">
+	  <div class="progress-bar progress-bar-striped active p1" role="progressbar" aria-valuenow="500" aria-valuemin="0" aria-valuemax="1023" style="width: 45%">
+	  </div>
+	</div>
+	<div class="row">
+	  <div class="col-md-6">
+		<div class="input-group">
+		  <input type="number" class="form-control" value="300" placeholder="Temperatura mínima" aria-describedby="basic-addon2">
+		  <span class="input-group-addon" id="basic-addon2">ºC</span>
+		</div>
+	  </div>
+	  <div class="col-md-6">
+		<div class="input-group">
+		  <input type="number" class="form-control" placeholder="Temperatura máxima" value="700" aria-describedby="basic-addon2">
+		  <span class="input-group-addon" id="basic-addon2">ºC</span>
+		</div>
+	  </div>
+	</div>
+	<br>
+	<button type="button" class="btn btn-primary btn-lg btn-block">Enviar</button>
+	<br />
+	<div class="temp1Frio">
+		<div class="alert alert-info" role="alert">
+			<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+			<span class="sr-only">Temperatura fria</span>
+			A temperatura está abaixo de <span class="temp1min"></span>.
+		</div>
+	</div>
+	<div class="temp1Normal">
+		<div class="alert alert-success" role="alert">
+			<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+			<span class="sr-only">Temperatura normal</span>
+			A temperatura está normal.
+		</div>
+	</div>
+	<div class="temp1Quente">
+		<div class="alert alert-danger" role="alert">
+			<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+			<span class="sr-only">Temperatura quente</span>
+			A temperatura está acima de <span class="temp1max"></span>.
+		</div>
+	</div>
+  </div>
+  <div class="jumbotron">
+	<h2>
+		<center>
+			Temperatura da sala 2
+		</center>
+	</h2>
+	<h3>
+		<center>
+			<span class="temp2">45</span>ºC
+		</center>
+	</h3>
+	<div class="progress">
+	  <div class="progress-bar progress-bar-striped active p2" role="progressbar" aria-valuenow="500" aria-valuemin="0" aria-valuemax="1023" style="width: 45%">
+	  </div>
+	</div>
+	<div class="row">
+	  <div class="col-md-6">
+		<div class="input-group">
+		  <input type="number" class="form-control" value="300" placeholder="Temperatura mínima" aria-describedby="basic-addon2">
+		  <span class="input-group-addon" id="basic-addon2">ºC</span>
+		</div>
+	  </div>
+	  <div class="col-md-6">
+		<div class="input-group">
+		  <input type="number" class="form-control" placeholder="Temperatura máxima" value="700" aria-describedby="basic-addon2">
+		  <span class="input-group-addon" id="basic-addon2">ºC</span>
+		</div>
+	  </div>
+	</div>
+	<br>
+	<button type="button" class="btn btn-primary btn-lg btn-block">Enviar</button>
+	<br />
+	<div class="temp2Frio">
+		<div class="alert alert-info" role="alert">
+			<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+			<span class="sr-only">Temperatura fria</span>
+			A temperatura está abaixo de <span class="temp2min"></span>.
+		</div>
+	</div>
+	<div class="temp2Normal">
+		<div class="alert alert-success" role="alert">
+			<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+			<span class="sr-only">Temperatura normal</span>
+			A temperatura está normal.
+		</div>
+	</div>
+	<div class="temp2Quente">
+		<div class="alert alert-danger" role="alert">
+			<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+			<span class="sr-only">Temperatura quente</span>
+			A temperatura está acima de <span class="temp2max"></span>.
+		</div>
+	</div>
+  </div>
+</div>
+
+<script>
+	var temp1 = 0;
+	var temp2 = 0;
+	var temp1min = 300;
+	var temp1max = 700;
+	var temp2min = 300;
+	var temp2max = 700;
+	
+	function atualiza(){
+		temp1 = Math.round(Math.random()*1023);
+		temp2 = Math.round(Math.random()*1023);
+		
+		$(".p1").css({width:(temp1/1023 * 100)+"%"})
+		$(".p2").css({width:(temp2/1023 * 100)+"%"})
+	
+	
+		$(".temp1").html(temp1);
+		$(".temp2").html(temp2);
+		
+		$(".temp1min").html(temp1min);
+		$(".temp1max").html(temp1max);
+		
+		$(".temp2min").html(temp2min);
+		$(".temp2max").html(temp2max);
+		
+		
+		
+		if(temp1 < temp1min){
+			$(".temp1Frio").show();
+			$(".temp1Normal").hide();
+			$(".temp1Quente").hide();
+		} else if(temp1 > temp1max){
+			$(".temp1Frio").hide();
+			$(".temp1Normal").hide();
+			$(".temp1Quente").show();
+		} else {
+			$(".temp1Frio").hide();
+			$(".temp1Normal").show();
+			$(".temp1Quente").hide();
+		}
+		
+		if(temp2 < temp2min){
+			$(".temp2Frio").show();
+			$(".temp2Normal").hide();
+			$(".temp2Quente").hide();
+		} else if(temp2 > temp2max){
+			$(".temp2Frio").hide();
+			$(".temp2Normal").hide();
+			$(".temp2Quente").show();
+		} else {
+			$(".temp2Frio").hide();
+			$(".temp2Normal").show();
+			$(".temp2Quente").hide();
+		}
+	}
+	
+	var myVar = setInterval(atualiza, 1000);
+
+	
+	atualiza();
+</script>
+</body>
+</html>
